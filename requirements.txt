@@ -1,2 +1,9 @@
 Django==2.2.13
 pytz==2018.5
+djangorestframework-jwt==1.11.0
+djangorestframework
+django-rest-passwordreset
+psycopg2-binary
+pyyaml
+ujson
+requests

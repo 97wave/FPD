@@ -25,7 +25,7 @@ SECRET_KEY = 'w4c9g05n!_0k+el*i+my*=*gqd7^sov40*(-2q(*eiprdf97v&'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1']
 
 
 # Application definition
@@ -74,9 +74,21 @@ WSGI_APPLICATION = 'orders.wsgi.application'
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
 DATABASES = {
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.postgresql',
+    #     'DATABASE': 'dbddiplom',
+    #     'USER': 'superuser',
+    #     'PASSWORD': 'admin23',
+    #     'HOST': '127.0.0.1',
+    #     'PORT': '5432',
+    # }
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'diplom',
+        'USER': 'user23',
+        'PASSWORD': 'admin23',
+        'HOST': '127.0.0.1',
+        'PORT': '5432'
     }
 }
 
