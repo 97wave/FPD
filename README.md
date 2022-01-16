@@ -25,6 +25,10 @@ alter role diplom_user set timezone to 'Europe/Moscow';
 create database diplom_db owner mploy;
 alter user mploy createdb;
 
+<!-- ################################# -->
+Dadmin  1234
+user23 admin23 
+<!-- ################################# -->
 <!-- Получить исходный код -->
 git config --global user.name "YOUR_USERNAME"
 

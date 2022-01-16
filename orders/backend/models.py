@@ -1,6 +1,8 @@
 from asyncio.windows_events import NULL
 
 import re
+
+# from unicodedata import category
 from django.conf import settings
 from django.core import validators
 from datetime import datetime, timedelta
@@ -23,7 +25,7 @@ USER_TYPE_CHOICES = (
     ('buyer', 'Покупатель'),
 )
 
-ORDER_STATUSES = (
+ORDER_STATUS_CHOICES = (
     ('not paid', 'Не оплачен'),
     ('new', 'Новый'),
     ('confirmed', 'Подтвержден'),
@@ -33,10 +35,10 @@ ORDER_STATUSES = (
     ('canceled', 'Отменен'),
 )
 
-CONTACT_TYPE_CHOICES = (
-    ('adress', 'Адрес'),
-    ('phone', 'Телефон'),
-)
+# CONTACT_TYPE_CHOICES = (
+#     ('adress', 'Адрес'),
+#     ('phone', 'Телефон'),
+# )
 
 # tpl = '/^[A-Z0-9._%+-]+@[A-Z0-9-]+.+.[A-Z]{2,4}$/i'
 # if re.match(tpl, work_email) is not None:
@@ -106,7 +108,7 @@ class User(AbstractUser):
             'Unselect this instead of deleting accounts.'
         )
     )
-    type = models.CharField(verbose_name='Тип пользователя', choices=USER_TYPE_CHOICES, max_length=5, default='buyer')
+    type = models.CharField(verbose_name='Группа пользователя', choices=USER_TYPE_CHOICES, max_length=5, default='buyer')
 
 
     def __str__(self):
@@ -152,6 +154,7 @@ class User(AbstractUser):
         return token.decode('utf-8')
 
     class Meta:
+
         verbose_name = 'Пользователь'
         verbose_name_plural = "Список пользователей"
         ordering = ('email',)
@@ -195,8 +198,8 @@ class Product(models.Model):
 
 
 class ProductParameter(models.Model):
-    product_id = ForeignKey(Product, related_name='product_id', blank=True)
-    parameter_id = ForeignKey(Parameter, related_name='parameter_id', blank=True)    
+    product_id = ForeignKey(Product, related_name='product_id', on_delete=models.CASCADE, blank=True)
+    parameter_id = ForeignKey(Parameter, related_name='parameter_id', on_delete=models.CASCADE, blank=True)    
     value = models.CharField(max_length=30, blank=True)
 
     class Meta:
@@ -206,44 +209,53 @@ class ProductParameter(models.Model):
         
 
 class Catalog(models.Model):
-    product_id = ForeignKey(Product, related_name='product_id', blank=True)
-    shop_id = ForeignKey(Shop, related_name='shop_id', blank=True)
+    category = models.CharField(max_length=20, blank=True)
+    product_id = ForeignKey(Product, on_delete=models.CASCADE, blank=True)
+    shop_id = ForeignKey(Shop, on_delete=models.CASCADE, blank=True)
     price = models.CharField(max_length=10, blank=True)
     qty = models.PositiveIntegerField(blank=True)
     on_sale = models.BooleanField(blank=True)
-    foreign_together = ForeignKey('Orderlist', related_name='foreign_together')
+    foreign_together = ForeignKey('Orderlist', related_name='foreign_together', on_delete=models.CASCADE)
 
     class Meta:
-        foreign_together = ('product_id', 'shop_id')  
+        unique_together = ('product_id', 'shop_id')  
         verbose_name = 'Список товаров'
         verbose_name_plural = 'Каталог товаров'   
         
 
 class Orderlist(models.Model):
-    order_id = ForeignKey('Order', related_name='order_id', blank=True)
-    # product_id = ForeignKey(Product, related_name='product_id', blank=True)
-    # shop_id = ForeignKey(Shop, related_name='shop_id', blank=True)
-    price_now = models.PositiveIntegerField(max_length=10, blank=True)
+    order_id = ForeignKey('Order', related_name='order_id', on_delete=models.CASCADE, blank=True)
+    product_id = ForeignKey(Product, on_delete=models.CASCADE, blank=True)
+    shop_id = ForeignKey(Shop, on_delete=models.CASCADE, blank=True)
+    current_price = models.PositiveIntegerField(blank=True)
     qty = models.PositiveIntegerField(blank=True)
     coast = models.PositiveIntegerField(blank=True)
 
     class Meta:
-        unique_together = (product_id, shop_id), primary_key=True,
+        unique_together = ('product_id', 'shop_id')
+        # , primary_key=True
         verbose_name = 'Заказанный товар'
         verbose_name_plural = 'Заказанные товары'
 
     @property
     def calculate_coast(self):
-        self.coast = self.price_now * self.qty
+        self.coast = self.current_price * self.qty
         return self.coast
 
 
 class Order(models.Model):
     id = models.IntegerField(primary_key=True)
-    user_id = ForeignKey('User', related_name='user_id', blank=True)
+    user_id = ForeignKey('User', related_name='user_id', on_delete=models.CASCADE, blank=True)
     date = models.DateField(auto_now_add=True)
-    status = models.CharField(verbose_name='Статус', choices=ORDER_STATUSES, max_length=15)
+    status = models.CharField(verbose_name='Статус', choices=ORDER_STATUS_CHOICES, max_length=15)
     total_cost = models.PositiveIntegerField(blank=True)
+
+    @property
+    def calculate_total_coast(self):
+        order_items = Orderlist.objects.filter(Orderlist.order_id == self.id).all()
+        for item in order_items:
+            self.total_coast += item.calculate_coast
+        return self.total_coast
 
     class Meta:
         verbose_name = 'Заказ'
@@ -253,21 +265,17 @@ class Order(models.Model):
     def __str__(self):
         return str(self.date)
 
-    @property
-    def calculate_total_coast(self):
-        order_items = Orderlist.objects.filter(Orderlist.order_id == self.id).all()
-        for item in order_items:
-            self.total_coast += item.coast
-        return self.total_coast
-
+    
 
 class Contact(models.Model):
-    user_id = ForeignKey('User', related_name = 'user_id')
-    type = models.CharField(verbose_name='Контакт', choices=CONTACT_TYPE_CHOICES, max_length=15)
-    value = models.CharField(verbose_name='')
+    user_id = ForeignKey(User, on_delete=models.CASCADE)
+    full_name = models.CharField(verbose_name='ФИО', max_length=60)
+    phone_number = models.CharField(verbose_name='Телефон', max_length=20)
+    address = models.CharField(verbose_name='Адрес', max_length=150)
     class Meta:
-        verbose_name = 'Контакт'
+        verbose_name = 'Контакты заказчика'
         verbose_name_plural = 'Список контактов'
+
 
 class ConfirmEmailToken(models.Model):
     class Meta:

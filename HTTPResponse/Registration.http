@@ -1,0 +1,27 @@
+@baseUrl = http://127.0.0.1:8000
+
+POST {{baseUrl}}/api/v1/user/registration
+Content-Type:  application/json
+{
+    "full_name": "Зыбенко Михаил Петрович",
+    "email": "123na4@mail.ru",
+    "password": "112233",
+    "repeat_password": "112233",
+    "company": "OOO 123",
+    "position": "Сотрудник среднего звена"
+}
+
+
+#####
+
+
+POST {{baseUrl}}/api/v1/seller/registration
+Content-Type:  application/json
+{
+    "full_name": "Зыбенко Михаил Петрович",
+    "email": "000123na4@mail.ru",
+    "password": "11223344",
+    "repeat_password": "11223344",
+    "company": "OOO 1234",
+    "position": "Начальник"
+}
